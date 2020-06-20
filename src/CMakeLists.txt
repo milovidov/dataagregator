@@ -10,6 +10,7 @@ option(DAGGY_CONSOLE "daggy console application" ON)
 option(DAGGY_CORE_STATIC "static daggy core lib" OFF)
 option(CONAN_BUILD "build with conan" OFF)
 option(PACKAGE_DEPS "include daggy deps into package" OFF)
+option(DAGGY_PYTHON "daggy bindings" OFF)
 
 set(COMPANY_NAME "synacker")
 set(APP_COPYRIGTH "Copyright \\251 2020 Mikhail Milovidov. Some Rights Reserved")
@@ -29,9 +30,18 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_BINARY_DIR}/exports)
 include(compiler)
 include(version)
 
+if(DAGGY_PYTHON)
+    set(DAGGY_CORE_STATIC ON)
+    set(DAGGY_CONSOLE OFF)
+    set(CONAN_BUILD ON)
+    add_subdirectory(daggy_python)
+endif()
+
 add_subdirectory(DaggyCore)
 if(DAGGY_CONSOLE)
     add_subdirectory(Daggy)
 endif()
+
+
 
 include(pack)
