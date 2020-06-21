@@ -9,9 +9,14 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 -->
 
 <typesystem package="DaggyPy">
-    <value-type name="TestCommand">
-        <value-type name="id">
+    <load-typesystem name="typesystem_core_common.xml" generate="no"/>
+    <namespace-type name="daggycore">
+        <value-type name="Command">
+            <enum-type name="State"/>
+            <value-type name="Stream">
+                <enum-type name="Type"/>
+            </value-type>
         </value-type>
-    </value-type>
-
+        <container-type name="Commands" type="map"/>
+    </namespace-type>
 </typesystem>

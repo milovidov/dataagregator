@@ -65,7 +65,7 @@ set(shiboken_options --generator-set=shiboken --enable-parent-ctor-heuristic
     --avoid-protected-hack
     --enable-pyside-extensions
     --language-level=c++17
-    --system-include-paths=$ENV{LLVM_INSTALL_DIR}/include
+    --system-include-paths=$ENV{CLANG_INSTALL_DIR}/include
     --include-paths=${CMAKE_SOURCE_DIR}/src/:${CMAKE_BINARY_DIR}/exports/:${CONAN_INCLUDE_DIRS_QT}:${CONAN_INCLUDE_DIRS_QT}/QtCore
     --typesystem-paths=${pyside2_path}/typesystems
     --output-directory=${CMAKE_CURRENT_BINARY_DIR}
