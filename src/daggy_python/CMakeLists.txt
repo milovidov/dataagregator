@@ -3,6 +3,8 @@ cmake_minimum_required(VERSION 3.16.4)
 project(daggy_python)
 set(CMAKE_CXX_STANDARD 17)
 
+find_package(Qt5 COMPONENTS Core REQUIRED)
+
 set(TARGET daggy_python)
 
 set(wrapped_header ${CMAKE_CURRENT_SOURCE_DIR}/bindings.h)
@@ -46,11 +48,7 @@ pyside2_config(--python-include-path python_include_dir)
 pyside2_config(--shiboken2-generator-include-path shiboken_include_dir 1)
 pyside2_config(--shiboken2-module-shared-libraries-cmake shiboken_shared_libraries 0)
 pyside2_config(--python-link-flags-cmake python_linking_data 0)
-pyside2_config(--pyside2-path pyside2_path 0)
-
-set(pyside2_qt_libs ${pyside2_path}/Qt/lib)
-
-message("LLVM_INSTALL_DIR $ENV{LLVM_INSTALL_DIR}")
+pyside2_config(--pyside2-path pyside2_path)
 
 set(shiboken_path "${shiboken2_generator_path}/shiboken2${CMAKE_EXECUTABLE_SUFFIX}")
 if(NOT EXISTS ${shiboken_path})
@@ -65,21 +63,16 @@ set(shiboken_options --generator-set=shiboken --enable-parent-ctor-heuristic
     --avoid-protected-hack
     --enable-pyside-extensions
     --language-level=c++17
-    --system-include-paths=$ENV{CLANG_INSTALL_DIR}/include
     --include-paths=${CMAKE_SOURCE_DIR}/src/:${CMAKE_BINARY_DIR}/exports/:${CONAN_INCLUDE_DIRS_QT}:${CONAN_INCLUDE_DIRS_QT}/QtCore
     --typesystem-paths=${pyside2_path}/typesystems
     --output-directory=${CMAKE_CURRENT_BINARY_DIR}
     )
 
-if(UNIX)
-    set(ENV_PATH LD_LIBRARY_PATH=${pyside2_qt_libs})
-else()
-    set(ENV_PATH)
-endif()
+message("shiboken_path ${shiboken_path}")
 
 set(generated_sources_dependencies ${wrapped_header} ${typesystem_file})
 add_custom_command(OUTPUT ${generated_sources}
-    COMMAND ${ENV_PATH} ${shiboken_path}
+    COMMAND ${shiboken_path}
     ${shiboken_options} ${wrapped_header} ${typesystem_file}
     DEPENDS ${generated_sources_dependencies}
     IMPLICIT_DEPENDS CXX ${wrapped_header}
