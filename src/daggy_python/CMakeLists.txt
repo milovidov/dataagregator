@@ -41,38 +41,51 @@ macro(pyside2_config option output_var)
     endif()
 endmacro()
 
-# Query for the shiboken generator path, Python path, include paths and linker flags.
-pyside2_config(--shiboken2-module-path shiboken2_module_path)
-pyside2_config(--shiboken2-generator-path shiboken2_generator_path)
-pyside2_config(--python-include-path python_include_dir)
-pyside2_config(--shiboken2-generator-include-path shiboken_include_dir 1)
-pyside2_config(--shiboken2-module-shared-libraries-cmake shiboken_shared_libraries 0)
-pyside2_config(--python-link-flags-cmake python_linking_data 0)
-pyside2_config(--pyside2-path pyside2_path)
+# Query for the shiboken2-generator path, PySide2 path, Python path, include paths and linker flags.
+pyside2_config(--shiboken2-module-path SHIBOKEN2_MODULE_PATH)
+pyside2_config(--shiboken2-generator-path SHIBOKEN2_GENERATOR_PATH)
+pyside2_config(--pyside2-path PYSIDE2_PATH)
 
-set(shiboken_path "${shiboken2_generator_path}/shiboken2${CMAKE_EXECUTABLE_SUFFIX}")
-if(NOT EXISTS ${shiboken_path})
-    message(FATAL_ERROR "Shiboken executable not found at path: ${shiboken_path}")
-else()
-    message("Shiboken executable path: ${shiboken_path}")
+pyside2_config(--python-include-path PYTHON_INCLUDE_DIR)
+pyside2_config(--shiboken2-generator-include-path SHIBOKEN2_GENERATOR_INCLUDE_DIR 1)
+pyside2_config(--pyside2-include-path PYSIDE2_INCLUDE_DIR 1)
+
+pyside2_config(--python-link-flags-cmake PYTHON_LINKING_DATA 0)
+pyside2_config(--shiboken2-module-shared-libraries-cmake SHIBOKEN2_MODULE_SHARED_LIBRARIES 0)
+pyside2_config(--pyside2-shared-libraries-cmake PYSIDE2_SHARED_LIBRARIES 0)
+
+set(SHIBOKEN_PATH "${SHIBOKEN2_GENERATOR_PATH}/shiboken2${CMAKE_EXECUTABLE_SUFFIX}")
+
+if(NOT EXISTS ${SHIBOKEN_PATH})
+    message(FATAL_ERROR "Shiboken executable not found at path: ${SHIBOKEN_PATH}")
 endif()
 
-link_directories(${pyside2_qt_libs})
-set(shiboken_options --generator-set=shiboken --enable-parent-ctor-heuristic
-    --enable-return-value-heuristic --use-isnull-as-nb_nonzero
-    --avoid-protected-hack
-    --enable-pyside-extensions
-    --language-level=c++17
-    --include-paths=${CMAKE_SOURCE_DIR}/src/:${CMAKE_BINARY_DIR}/exports/:${CONAN_INCLUDE_DIRS_QT}:${CONAN_INCLUDE_DIRS_QT}/QtCore
-    --typesystem-paths=${pyside2_path}/typesystems
-    --output-directory=${CMAKE_CURRENT_BINARY_DIR}
-    )
+set(QT_INCLUDE_DIRS ${CONAN_INCLUDE_DIRS_QT} ${CONAN_INCLUDE_DIRS_QT}/QtCore)
+set(INCLUDES "")
+foreach(INCLUDE_DIR ${QT_INCLUDE_DIRS})
+    list(APPEND INCLUDES "-I${INCLUDE_DIR}")
+endforeach()
 
-message("shiboken_path ${shiboken_path}")
+message("PYSIDE2_PATH ${PYSIDE2_PATH}")
+
+set(shiboken_options
+    --generator-set=shiboken
+    --enable-parent-ctor-heuristic
+    --enable-pyside-extensions
+    --enable-return-value-heuristic
+    --use-isnull-as-nb_nonzero
+    --avoid-protected-hack
+    ${INCLUDES}
+    -I${CMAKE_SOURCE_DIR}/src
+    -I${CMAKE_BINARY_DIR}/exports
+    -T${CMAKE_CURRENT_SOURCE_DIR}
+    -T${PYSIDE2_PATH}/typesystems
+    --output-directory=${CMAKE_BINARY_DIR}/${TARGET}
+)
 
 set(generated_sources_dependencies ${wrapped_header} ${typesystem_file})
 add_custom_command(OUTPUT ${generated_sources}
-    COMMAND ${shiboken_path}
+    COMMAND ${SHIBOKEN_PATH}
     ${shiboken_options} ${wrapped_header} ${typesystem_file}
     DEPENDS ${generated_sources_dependencies}
     IMPLICIT_DEPENDS CXX ${wrapped_header}
@@ -119,3 +132,8 @@ if (WIN32)
     find_library(python_link_flags ${python_lib} PATHS ${python_libdir} HINTS ${python_libdir})
     target_link_libraries(${TARGET} PRIVATE ${python_link_flags})
 endif()
+
+set(PYSIDE2_ADDITIONAL_INCLUDES "")
+foreach(INCLUDE_DIR ${PYSIDE2_INCLUDE_DIR})
+    list(APPEND PYSIDE2_ADDITIONAL_INCLUDES "${INCLUDE_DIR}/QtCore")
+endforeach()
