@@ -36,14 +36,16 @@ class DaggyConan(ConanFile):
         "yaml_support": [True, False],
         "daggy_console": [True, False],
         "daggy_core_static": [True, False],
-        "package_deps": [True, False]
+        "package_deps": [True, False],
+        "daggy_python": [True, False]
     }
     default_options = {
         "ssh2_support": True,
         "yaml_support": True,
         "daggy_console": True,
         "daggy_core_static": False,
-        "package_deps": True
+        "package_deps": True,
+        "daggy_python": False
     }
     generators = "cmake"
     exports = ["CMakeLists.txt", "git_version.py", "cmake/*", "src/*"]
@@ -87,6 +89,7 @@ class DaggyConan(ConanFile):
         cmake.definitions["VERSION"] = self.version
         cmake.definitions["PACKAGE_DEPS"] = self.options.package_deps
         cmake.definitions["CMAKE_INSTALL_LIBDIR"] = self._libdir()
+        cmake.definitions["DAGGY_PYTHON"] = self.options.daggy_python
         cmake.configure()
         return cmake
 
@@ -108,4 +111,4 @@ class DaggyConan(ConanFile):
                 self.copy("*.dll", src="@bindirs", dst="bin")
                 self.copy("*.dll", src="@libdirs", dst="bin")
             else:
-                self.copy("*.so.*", src="@libdirs", dst="{}/{}".format(self._libdir(), self.name))
+                self.copy("*.so.*", src="@libdirs", dst="lib")

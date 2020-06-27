@@ -26,7 +26,6 @@ SOFTWARE.
 #include "daggycore_export.h"
 
 #include <QVariantMap>
-#include <QObject>
 
 namespace daggycore {
 

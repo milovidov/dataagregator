@@ -6,12 +6,20 @@ set(CMAKE_CXX_STANDARD 17)
 find_package(Qt5 COMPONENTS Core REQUIRED)
 
 set(TARGET daggy_python)
+set(DAGGY_PYTHON_MODULE_NAME DaggyPy)
+
+configure_file(bindings.xml.in ${CMAKE_CURRENT_BINARY_DIR}/bindings.xml @ONLY)
 
 set(wrapped_header ${CMAKE_CURRENT_SOURCE_DIR}/bindings.h)
-set(typesystem_file ${CMAKE_CURRENT_SOURCE_DIR}/bindings.xml)
+set(typesystem_file ${CMAKE_CURRENT_BINARY_DIR}/bindings.xml)
 
 set(generated_sources
-    ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}/command_wrapper.cpp)
+    ${CMAKE_CURRENT_BINARY_DIR}/${DAGGY_PYTHON_MODULE_NAME}/daggycore_command_wrapper.cpp
+    ${CMAKE_CURRENT_BINARY_DIR}/${DAGGY_PYTHON_MODULE_NAME}/daggycore_command_stream_wrapper.cpp
+    ${CMAKE_CURRENT_BINARY_DIR}/${DAGGY_PYTHON_MODULE_NAME}/daggycore_wrapper.cpp
+    ${CMAKE_CURRENT_BINARY_DIR}/${DAGGY_PYTHON_MODULE_NAME}/daggypy_module_wrapper.cpp
+)
+
 
 if(NOT python_interpreter)
     find_program(python_interpreter "python")
@@ -47,6 +55,8 @@ pyside2_config(--shiboken2-generator-path SHIBOKEN2_GENERATOR_PATH)
 pyside2_config(--pyside2-path PYSIDE2_PATH)
 
 pyside2_config(--python-include-path PYTHON_INCLUDE_DIR)
+pyside2_config(--shiboken2-generator-include-path SHIBOKEN_INCLUDE_DIR 1)
+
 pyside2_config(--shiboken2-generator-include-path SHIBOKEN2_GENERATOR_INCLUDE_DIR 1)
 pyside2_config(--pyside2-include-path PYSIDE2_INCLUDE_DIR 1)
 
@@ -61,12 +71,11 @@ if(NOT EXISTS ${SHIBOKEN_PATH})
 endif()
 
 set(QT_INCLUDE_DIRS ${CONAN_INCLUDE_DIRS_QT} ${CONAN_INCLUDE_DIRS_QT}/QtCore)
+message("QT_INCLUDE_DIRS ${QT_INCLUDE_DIRS}")
 set(INCLUDES "")
 foreach(INCLUDE_DIR ${QT_INCLUDE_DIRS})
     list(APPEND INCLUDES "-I${INCLUDE_DIR}")
 endforeach()
-
-message("PYSIDE2_PATH ${PYSIDE2_PATH}")
 
 set(shiboken_options
     --generator-set=shiboken
@@ -78,9 +87,8 @@ set(shiboken_options
     ${INCLUDES}
     -I${CMAKE_SOURCE_DIR}/src
     -I${CMAKE_BINARY_DIR}/exports
-    -T${CMAKE_CURRENT_SOURCE_DIR}
     -T${PYSIDE2_PATH}/typesystems
-    --output-directory=${CMAKE_BINARY_DIR}/${TARGET}
+    --output-directory=${CMAKE_CURRENT_BINARY_DIR}
 )
 
 set(generated_sources_dependencies ${wrapped_header} ${typesystem_file})
@@ -89,7 +97,7 @@ add_custom_command(OUTPUT ${generated_sources}
     ${shiboken_options} ${wrapped_header} ${typesystem_file}
     DEPENDS ${generated_sources_dependencies}
     IMPLICIT_DEPENDS CXX ${wrapped_header}
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     COMMENT "Running generator for ${typesystem_file}.")
 
 set(${TARGET}_sources ${generated_sources})
@@ -98,7 +106,19 @@ set(CMAKE_SKIP_BUILD_RPATH FALSE)
 set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 set(CMAKE_BUILD_RPATH ${shiboken2_module_path} ${pyside2_qt_libs})
 
+
 add_library(${TARGET} MODULE ${${TARGET}_sources})
+
+set(PYSIDE2_ADDITIONAL_INCLUDES "")
+foreach(INCLUDE_DIR ${PYSIDE2_INCLUDE_DIR})
+    list(APPEND PYSIDE2_ADDITIONAL_INCLUDES "${INCLUDE_DIR}/QtCore")
+endforeach()
+
+target_include_directories(${TARGET} PRIVATE ${PYSIDE2_INCLUDE_DIR})
+target_include_directories(${TARGET} PRIVATE ${PYSIDE2_ADDITIONAL_INCLUDES})
+target_include_directories(${TARGET} PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/${DAGGY_PYTHON_MODULE_NAME})
+target_include_directories(${TARGET} PRIVATE ${SHIBOKEN_INCLUDE_DIR})
+target_include_directories(${TARGET} PRIVATE ${PYTHON_INCLUDE_DIR})
 
 target_link_libraries(${TARGET} PRIVATE ${shiboken_shared_libraries})
 target_link_libraries(${TARGET} PRIVATE DaggyCore)
@@ -132,8 +152,3 @@ if (WIN32)
     find_library(python_link_flags ${python_lib} PATHS ${python_libdir} HINTS ${python_libdir})
     target_link_libraries(${TARGET} PRIVATE ${python_link_flags})
 endif()
-
-set(PYSIDE2_ADDITIONAL_INCLUDES "")
-foreach(INCLUDE_DIR ${PYSIDE2_INCLUDE_DIR})
-    list(APPEND PYSIDE2_ADDITIONAL_INCLUDES "${INCLUDE_DIR}/QtCore")
-endforeach()
